@@ -16,7 +16,11 @@ class SubjectiveBet(gl.Contract):
         if not question:
             raise Exception("question required")
         try:
-            options = json.loads(str(options_json))
+            raw = options_json
+            if isinstance(raw, list):
+                options = raw
+            else:
+                options = json.loads(str(raw))
         except Exception:
             raise Exception("options_json must be valid JSON array")
         if not isinstance(options, list) or len(options) < 2:
