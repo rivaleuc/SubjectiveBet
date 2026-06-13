@@ -1,112 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SubjectiveBet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; max-width: 700px; margin: 0 auto; padding: 2rem; background: #0a0a0a; color: #e0e0e0; }
-    h1 { margin-bottom: 1rem; color: #7c4dff; }
-    h2 { margin: 1.5rem 0 0.5rem; color: #b388ff; }
-    input, button, select { padding: 0.5rem; border-radius: 4px; border: 1px solid #333; background: #1a1a1a; color: #e0e0e0; margin: 0.25rem 0; width: 100%; }
-    button { background: #7c4dff; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background: #651fff; }
-    .card { background: #141414; border: 1px solid #222; border-radius: 8px; padding: 1rem; margin: 0.5rem 0; }
-    .log { background: #1a1a1a; padding: 0.5rem; margin-top: 0.5rem; font-size: 0.85rem; white-space: pre-wrap; border-radius: 4px; max-height: 200px; overflow-y: auto; }
+    .card-hover { transition: all 0.3s } .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3) }
   </style>
 </head>
-<body>
-  <div id="app"></div>
-  <script type="module">
-    import { h, render, Component } from 'https://esm.sh/preact@10.19.3';
-    import htm from 'https://esm.sh/htm@3.1.1';
-    const html = htm.bind(h);
+<body class="bg-[#0d1117] text-white min-h-screen">
+  <nav class="bg-[#161b22] border-b border-gray-800 px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-2"><span class="text-2xl">⚽</span><h1 class="text-xl font-bold">SubjectiveBet</h1></div>
+    <span class="bg-green-900/50 text-green-400 text-xs px-3 py-1 rounded-full">Live on GenLayer</span>
+  </nav>
 
-    const API = 'http://localhost:4000/api';
+  <main class="max-w-4xl mx-auto p-6">
+    <!-- Create Market -->
+    <section class="bg-[#161b22] rounded-2xl p-6 border border-gray-800 mb-6">
+      <h2 class="text-lg font-bold text-orange-400 mb-4">Create Market</h2>
+      <div class="grid md:grid-cols-2 gap-3">
+        <input placeholder="Question (e.g. Who was MOTM?)" class="bg-[#0d1117] border border-gray-700 rounded-xl px-4 py-3 placeholder-gray-600 outline-none col-span-2">
+        <input placeholder="Sport" class="bg-[#0d1117] border border-gray-700 rounded-xl px-4 py-3 placeholder-gray-600 outline-none">
+        <input placeholder="Match info" class="bg-[#0d1117] border border-gray-700 rounded-xl px-4 py-3 placeholder-gray-600 outline-none">
+        <input placeholder='Options JSON: ["Player A","Player B","Player C"]' class="bg-[#0d1117] border border-gray-700 rounded-xl px-4 py-3 placeholder-gray-600 outline-none col-span-2">
+      </div>
+      <button class="w-full mt-3 bg-orange-600 hover:bg-orange-500 rounded-xl py-3 font-bold transition">Create Market</button>
+    </section>
 
-    class App extends Component {
-      constructor() {
-        super();
-        this.state = { log: '', contractAddr: '', marketKey: '' };
-      }
-
-      log(msg) { this.setState(s => ({ log: msg + '\n' + s.log })); }
-
-      async callContract(method, args) {
-        this.log(`Calling ${method}...`);
-        try {
-          const res = await fetch(`${API}/call`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contract: this.state.contractAddr, method, args })
-          });
-          const data = await res.json();
-          this.log(`Result: ${JSON.stringify(data)}`);
-          return data;
-        } catch (e) { this.log(`Error: ${e.message}`); }
-      }
-
-      async createMarket(e) {
-        e.preventDefault();
-        const f = e.target;
-        const result = await this.callContract('create_market', [
-          f.question.value, f.sport.value, f.match_info.value, f.options.value
-        ]);
-        if (result) this.setState({ marketKey: result.result || '' });
-      }
-
-      async placeBet(e) {
-        e.preventDefault();
-        const f = e.target;
-        await this.callContract('place_bet', [f.market_key.value, parseInt(f.option_index.value)]);
-      }
-
-      async resolveMarket(e) {
-        e.preventDefault();
-        const f = e.target;
-        await this.callContract('resolve_market', [f.rmarket_key.value]);
-      }
-
-      render() {
-        return html`
-          <h1>⚽ SubjectiveBet</h1>
-          <p>Subjective sports predictions resolved by AI consensus</p>
-
-          <div class="card">
-            <label>Contract Address</label>
-            <input value=${this.state.contractAddr} onInput=${e => this.setState({ contractAddr: e.target.value })} placeholder="GenLayer contract address" />
+    <!-- Example Market Cards -->
+    <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-3">Active Markets</h3>
+    <div class="space-y-4">
+      <div class="card-hover bg-[#161b22] rounded-2xl p-5 border border-gray-800">
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <p class="font-semibold">Who was best player in CL final 2024?</p>
+            <p class="text-xs text-gray-500 mt-1">⚽ Real Madrid vs Dortmund</p>
           </div>
-
-          <h2>Create Market</h2>
-          <form class="card" onSubmit=${e => this.createMarket(e)}>
-            <input name="question" placeholder="Was the ref wrong on the penalty?" required />
-            <input name="sport" placeholder="Football" required />
-            <input name="match_info" placeholder="Arsenal vs Chelsea, 2024-03-15" required />
-            <input name="options" placeholder='["yes","no"]' required />
-            <button type="submit">Create Market</button>
-          </form>
-
-          <h2>Place Bet</h2>
-          <form class="card" onSubmit=${e => this.placeBet(e)}>
-            <input name="market_key" placeholder="market_1" value=${this.state.marketKey} required />
-            <input name="option_index" type="number" placeholder="Option index (0, 1, ...)" required />
-            <button type="submit">Place Bet</button>
-          </form>
-
-          <h2>Resolve Market</h2>
-          <form class="card" onSubmit=${e => this.resolveMarket(e)}>
-            <input name="rmarket_key" placeholder="market_1" value=${this.state.marketKey} required />
-            <button type="submit">Resolve (AI Judges)</button>
-          </form>
-
-          <h2>Log</h2>
-          <div class="log">${this.state.log || 'No activity yet.'}</div>
-        `;
-      }
-    }
-
-    render(html`<${App} />`, document.getElementById('app'));
-  </script>
+          <span class="bg-yellow-900/50 text-yellow-400 text-xs px-2 py-1 rounded-full">Resolved</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button class="bg-gray-800 border border-gray-700 rounded-lg py-3 text-center hover:border-orange-500 transition">
+            <span class="block text-sm">Vinicius Jr</span>
+            <span class="text-xs text-gray-500">33%</span>
+          </button>
+          <button class="bg-gray-800 border border-gray-700 rounded-lg py-3 text-center hover:border-orange-500 transition">
+            <span class="block text-sm">Carvajal</span>
+            <span class="text-xs text-gray-500">25%</span>
+          </button>
+          <button class="bg-orange-900/30 border border-orange-600 rounded-lg py-3 text-center">
+            <span class="block text-sm font-bold text-orange-400">Bellingham ✓</span>
+            <span class="text-xs text-orange-300">Winner</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
 </body>
 </html>
