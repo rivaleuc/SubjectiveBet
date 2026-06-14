@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Toaster, toast } from "sonner";
-import { read, write, CONTRACT } from "./genlayer";
+import { read, write, CONTRACT, connectWallet, isWalletConnected } from "./genlayer";
 
 type Sport = "Football" | "Basketball" | "Tennis" | "MMA" | "Cricket";
 
@@ -53,7 +53,20 @@ function normalizeOptions(raw: any): Option[] {
 
 function App() {
   const [markets, setMarkets] = useState<Market[]>([]);
+  const [wallet, setWallet] = useState<string | null>(null);
   const [filter, setFilter] = useState<Sport | "All">("All");
+
+  const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+  const handleConnect = async () => {
+    try {
+      const addr = await connectWallet();
+      setWallet(addr);
+      toast.success(`Wallet connected · ${shortAddr(addr)}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to connect wallet");
+    }
+  };
   const [selection, setSelection] = useState<Selection | null>(null);
   const [stake, setStake] = useState("");
   const [creating, setCreating] = useState(false);
@@ -227,9 +240,21 @@ function App() {
                 {loading ? "loading…" : `${markets.length} live markets`}
               </span>
             </div>
-            <span className="hidden font-mono text-[10px] text-slate-400/50 md:inline">
-              {CONTRACT}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden font-mono text-[10px] text-slate-400/50 md:inline">
+                {CONTRACT}
+              </span>
+              <button
+                onClick={handleConnect}
+                className="rounded-full bg-[#C7F464] px-4 py-1.5 text-sm font-bold text-[#0B1437] transition hover:brightness-105"
+              >
+                {wallet
+                  ? shortAddr(wallet)
+                  : isWalletConnected()
+                    ? "Connected"
+                    : "Connect Wallet"}
+              </button>
+            </div>
           </div>
 
           {/* sport filter tabs */}
