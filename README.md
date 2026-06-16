@@ -4,8 +4,8 @@
 
 SubjectiveBet handles the bets that classic oracles can't: "Who was the MVP?", "Was that a fair red card?", "Who really won the exchange?" Anyone creates a market with a question and options; bettors pick a side; when it's time to settle, GenLayer validators crawl sports coverage, weigh expert consensus, and agree on the winning outcome on-chain — no single referee, no centralized data provider.
 
-- **Contract (Bradbury, chain 4221):** `0x515582F76367150d8d0A6C1eD3FcB5E464dC63D0`
-- **Explorer:** https://explorer-bradbury.genlayer.com/contract/0x515582F76367150d8d0A6C1eD3FcB5E464dC63D0
+- **Contract (Bradbury, chain 4221):** `0x46E47aEb46e9241CB0d2445760c6f5FD8Dba572B`
+- **Explorer:** https://explorer-bradbury.genlayer.com/contract/0x46E47aEb46e9241CB0d2445760c6f5FD8Dba572B
 - **Live app:** https://subjectivebet.pages.dev
 
 ## What it does

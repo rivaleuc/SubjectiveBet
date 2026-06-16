@@ -3,6 +3,38 @@ import json
 from genlayer import *
 
 
+# ----------------------------------------------------------------------
+# Deterministic verdict logic (module-level, unit-testable, shared by
+# leader_fn and validator_fn). No free-form LLM text comparison.
+# ----------------------------------------------------------------------
+def validate_verdict(data, num_options) -> bool:
+    if not isinstance(data, dict):
+        return False
+    idx = data.get("winning_index")
+    # winning_index is an int; reject bool (bool is a subclass of int).
+    if not isinstance(idx, int) or isinstance(idx, bool):
+        return False
+    # Cross-field anchor: index must reference a real option.
+    if idx < 0 or idx >= num_options:
+        return False
+    reasoning = data.get("reasoning")
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return False
+    return True
+
+
+def normalize_verdict(raw, num_options) -> dict:
+    if not isinstance(raw, dict):
+        raw = {}
+    idx = raw.get("winning_index")
+    if not isinstance(idx, int) or isinstance(idx, bool) or idx < 0 or idx >= num_options:
+        idx = 0
+    reasoning = raw.get("reasoning")
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        reasoning = "no reasoning provided"
+    return {"winning_index": idx, "reasoning": reasoning}
+
+
 class SubjectiveBet(gl.Contract):
     markets: TreeMap[str, str]
     market_count: u256
@@ -79,6 +111,7 @@ class SubjectiveBet(gl.Contract):
         sport = market["sport"]
         match_info = market["match_info"]
         options = market["options"]
+        num_options = len(options)  # captured into the closure for the invariant
 
         def leader_fn() -> str:
             # Fetch sports news
@@ -108,28 +141,27 @@ RULES:
 1. Pick the option that best answers the question based on evidence and expert consensus.
 2. For subjective questions (MVP, best player), go with majority expert opinion.
 3. For ref decisions, analyze the incident objectively.
+4. winning_index MUST be an integer between 0 and {num_options - 1}.
 
 Reply ONLY valid JSON:
 {{"winning_index": <int>, "reasoning": "<explanation>"}}"""
 
             raw = gl.nondet.exec_prompt(prompt, response_format="json")
-            if isinstance(raw, dict):
-                return json.dumps(raw)
-            return str(raw).strip()
+            if not isinstance(raw, dict):
+                try:
+                    raw = json.loads(str(raw))
+                except Exception:
+                    raw = {}
+            return json.dumps(normalize_verdict(raw, num_options))
 
         def validator_fn(leader_result) -> bool:
             if not isinstance(leader_result, gl.vm.Return):
                 return False
             try:
                 data = json.loads(leader_result.calldata)
-                idx = data.get("winning_index")
-                if not isinstance(idx, int) or idx < 0 or idx >= len(options):
-                    return False
-                if not isinstance(data.get("reasoning"), str):
-                    return False
-                return True
             except Exception:
                 return False
+            return validate_verdict(data, num_options)
 
         result_str = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
         return json.loads(result_str)

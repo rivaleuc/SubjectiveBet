@@ -128,24 +128,33 @@ function App() {
     setStake("");
   };
 
-  const placeBet = () => {
+  const [placing, setPlacing] = useState(false);
+
+  const placeBet = async () => {
     const amt = Number(stake);
     if (!selection || !amt || amt <= 0) {
       toast.error("Enter a stake amount.");
       return;
     }
     const opt = selection.market.options[selection.optionIndex];
-    setMarkets((ms) =>
-      ms.map((m) =>
-        m.key === selection.market.key ? { ...m, pool: m.pool + amt } : m
-      )
-    );
-    toast.success(
-      `Staked ${fmt(amt)} on "${opt.label}" @ ${opt.odds}% — payout ${fmt(
-        Math.round((amt / (opt.odds / 100)) * 100) / 100
-      )}`
-    );
-    setSelection(null);
+    const key = selection.market.key;
+    setPlacing(true);
+    const tid = toast.loading("Placing bet on-chain… (30–60s)");
+    try {
+      // REAL on-chain write — records the position on the market contract.
+      await write("place_bet", [key, selection.optionIndex]);
+      setMarkets((ms) =>
+        ms.map((m) => (m.key === key ? { ...m, pool: m.pool + amt } : m))
+      );
+      toast.success(`Position recorded on-chain — "${opt.label}" @ ${opt.odds}%`, {
+        id: tid,
+      });
+      setSelection(null);
+    } catch (e: any) {
+      toast.error(`Bet failed: ${e?.message ?? e}`, { id: tid });
+    } finally {
+      setPlacing(false);
+    }
   };
 
   const createMarket = async () => {
@@ -459,9 +468,10 @@ function App() {
 
               <button
                 onClick={placeBet}
-                className="mt-auto rounded-xl bg-[#C7F464] py-3.5 font-extrabold text-[#0B1437] transition hover:brightness-105"
+                disabled={placing}
+                className="mt-auto rounded-xl bg-[#C7F464] py-3.5 font-extrabold text-[#0B1437] transition hover:brightness-105 disabled:opacity-60"
               >
-                Place bet
+                {placing ? "Placing…" : "Place bet"}
               </button>
               <p className="mt-3 text-center text-[10px] text-slate-500">
                 Settled on-chain by AI adjudication of the contested call.
